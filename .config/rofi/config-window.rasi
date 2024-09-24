@@ -1,0 +1,19 @@
+configuration {
+  display-drun: "Applications:";
+  display-window: "Windows:";
+  modi: "window,drun";
+  font: "HurmitNerdFontMono 13";
+  drun-display-format: "{icon} {name}";
+  show-icons: true;
+  icon-theme: "Papirus";
+  window {
+    close-on-delete: false;
+  }
+ }
+
+@theme "/home/jan/.config/rofi/theme.rasi"
+
+inputbar {
+  enabled: false;
+}
+

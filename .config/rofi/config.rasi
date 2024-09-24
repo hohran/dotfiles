@@ -1,0 +1,23 @@
+configuration {
+  display-drun: "Applications:";
+  display-window: "Windows:";
+  modi: "window,drun";
+  font: "HurmitNerdFontMono 11";
+  drun-display-format: "{icon} {name}";
+  show-icons: true;
+  icon-theme: "Papirus";
+  window {
+    close-on-delete: false;
+  }
+ }
+
+@theme "/home/jan/.config/rofi/theme.rasi"
+
+inputbar {
+  spacing  : 8px;
+  padding  : 4px 8px;
+  children : [ icon-search, entry ];
+
+  background-color: @bg0;
+}
+
