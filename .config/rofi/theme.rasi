@@ -10,8 +10,8 @@
   red     : #f7768e;
   green   : #9ece6a;
   yellow  : #e0af68;
-  blue    : #7aa2f7;
-  magenta : #9a7ecc;
+  blue    : #776be3;
+  magenta : #7c5cdc;
   cyan    : #4abaaf;
   purple  : #b4befe;
 
@@ -36,9 +36,8 @@ window {
   width    : 600;
 
   background-color: @bg1;
-  border: 1px;
-  border-color: @bg3;
-  border-radius: 6px;
+  border: 3;
+  border-color: @magenta;
 }
 
 
