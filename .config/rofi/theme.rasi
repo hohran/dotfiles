@@ -35,6 +35,8 @@ window {
   location : center;
   width    : 600;
 
+  background: rgba(14,65,91,0.3);
+  // background-image: url("shapes-min.png");
   background-color: @bg1;
   border: 3;
   border-color: @magenta;
