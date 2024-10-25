@@ -406,8 +406,13 @@ globalkeys = gears.table.join(
     { description = "view previous", group = "tag" }),
   awful.key({ modkey, }, "Right", awful.tag.viewnext,
     { description = "view next", group = "tag" }),
-  awful.key({ modkey, }, "Escape", awful.tag.history.restore,
-    { description = "go back", group = "tag" }),
+  -- awful.key({ modkey, }, "Escape", awful.tag.history.restore,
+  --   { description = "go back", group = "tag" }),
+
+  awful.key({ modkey, }, "Escape", function()
+      awful.util.spawn("systemctl suspend")
+    end,
+    { description = "lock screen", group = "awesome" }),
 
   awful.key({ modkey, }, "j",
     function()
@@ -528,7 +533,7 @@ globalkeys = gears.table.join(
   awful.key({}, "Print", function() awful.util.spawn("flameshot screen") end,
     { description = "Screenshot with selection", group = "awesome" }),
   awful.key({ "Shift" }, "Print", function() awful.util.spawn("flameshot gui") end,
-    { description = "Screenshot with selection", group = "awesome" })
+    { description = "Screenshot", group = "awesome" })
 )
 
 clientkeys = gears.table.join(
