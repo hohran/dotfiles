@@ -7,7 +7,8 @@
     "/home/jan/dev",
     "/home/jan/git",
     "/home/jan/tmp",
-    "/home/jan/school/VYPa/pr1/language"
+    "/home/jan/school/VYPa/pr1/language",
+    "/home/jan/school/VYPa/pr-secret/parser/language"
   ],
   "theme": {
     "function.builtin": {

@@ -55,9 +55,10 @@ local themes_dir = ".config/awesome/themes/"
 -- Themes define colours, icons, font and wallpapers.
 beautiful.init(themes_dir .. "xresources_theme.lua")
 beautiful.font = "HurmitNerdFontMono 11"
+beautiful.wallpaper = "/home/jan/.config/resources/banan.jpg"
 
 -- This is used later as the default terminal and editor to run.
-terminal = "alacritty"
+terminal = "kitty"
 editor = os.getenv("EDITOR") or "nano"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -72,21 +73,7 @@ altkey = "Mod1"
 -- Table of layouts to cover with awful.layout.inc, order matters.
 awful.layout.layouts = {
   awful.layout.suit.tile,
-  -- awful.layout.suit.tile.left,
-  -- awful.layout.suit.tile.bottom,
-  -- awful.layout.suit.tile.top,
   awful.layout.suit.fair,
-  -- awful.layout.suit.floating,
-  -- awful.layout.suit.fair.horizontal,
-  -- awful.layout.suit.spiral,
-  -- awful.layout.suit.spiral.dwindle,
-  -- awful.layout.suit.max,
-  -- awful.layout.suit.max.fullscreen,
-  -- awful.layout.suit.magnifier,
-  -- awful.layout.suit.corner.nw,
-  -- awful.layout.suit.corner.ne,
-  -- awful.layout.suit.corner.sw,
-  -- awful.layout.suit.corner.se,
 }
 -- }}}
 
@@ -110,116 +97,46 @@ mymainmenu = awful.menu({
   }
 })
 
-mylauncher = awful.widget.launcher({
-  image = beautiful.awesome_icon,
-  menu = mymainmenu
-})
-
 -- Menubar configuration
 menubar.utils.terminal = terminal -- Set the terminal for applications that require it
 -- }}}
 
--- Keyboard map indicator and switcher
-mykeyboardlayout = awful.widget.keyboardlayout()
-
--- {{{ Wibar
--- Create a textclock widget
-mytextclock = wibox.widget.textclock()
-
-separator = wibox.widget.textbox(" | ")
-battery_widget = require("battery-widget")
-
-debug_prompt = wibox.widget {
-    widget = wibox.widget.textbox,
-    text   = "",
-    align  = "center",         -- Align text in the center (optional)
-    valign = "center",         -- Vertically align text in the center (optional)
-}
-
-local function make_popup(title, content)
-    local popup_widget = awful.popup {
-        widget    = {
-            {
-                {
-                    text   = title .. "\n",
-                    widget = wibox.widget.textbox,
-                    font = "HurmitNerdFontMono Bold 12"
-                },
-                content,
-                layout = wibox.layout.fixed.vertical,
-            },
-            margins = 20,
-            widget  = wibox.container.margin
-        },
-        placement = awful.placement.centered,
-        ontop     = true,
-        visible   = false,
-        hide_on_right_click = true,
-        border_width = 2,
-        border_color = beautiful.border_focus,
-        shape        = gears.shape.rounded_rect,
-    }
-
-    return popup_widget
+local function change_polybar(bar_name)
+    awful.spawn.with_shell("/home/jan/.config/polybar/launch.sh " .. bar_name)
 end
 
+local function debug(str)
+    naughty.notify({ text = "Debug: " .. str})
+end
 
--- Create the buttons
-local _set_primary_only = wibox.widget {
-    text = "Primary",
-    widget = wibox.widget.textbox,
-    buttons = awful.button({}, 1, function() 
-      awful.util.spawn("mons -o")
-      awesome.restart()
-    end), -- Left click
-    align  = "center"
-}
+local function do_nothing()
+end
 
-local _set_secondary_only = wibox.widget {
-    text = "Secondary",
-    widget = wibox.widget.textbox,
-    buttons = awful.button({}, 1, function()
-      awful.util.spawn("mons -s")
-      awesome.restart()
-    end), -- Left click
-    align  = "center"
-}
+local function dict_to_string(lookup)
+    local s = ""
+    for key,_ in pairs(lookup) do
+        s = s .. key .. "\n"
+    end
+    if #s > 0 then
+        s = s:sub(1,-2)
+    end
+    return s
+end
 
-local _duplicate_screen = wibox.widget {
-    text = "Duplicate",
-    widget = wibox.widget.textbox,
-    buttons = awful.button({}, 1, function()
-      awful.util.spawn("mons -d")
-      awesome.restart()
-    end), -- Left click
-    align  = "center"
-}
-
-local _extend_screen_left = wibox.widget {
-    text = "Extend",
-    widget = wibox.widget.textbox,
-    buttons = awful.button({}, 1, function()
-      awful.util.spawn("mons -e left")
-      awesome.restart()
-    end), -- Left click
-    align  = "center"
-}
-
--- Create a vertical layout and add the buttons
-local monitor_selection = wibox.widget {
-    _set_primary_only,
-    _set_secondary_only,
-    _duplicate_screen,
-    _extend_screen_left,
-    layout = wibox.layout.fixed.vertical, -- Stack buttons vertically
-}
-
-monitor_selection_popup = make_popup('Monitor selection', monitor_selection)
+local function choose_option (options, option_string)
+    if not option_string then
+        option_string = dict_to_string(options)
+    end
+    local func = "echo \"" .. option_string .. "\" | rofi -dmenu -config /home/jan/.config/rofi/config-window.rasi"
+    awful.spawn.easy_async_with_shell(
+        func,
+        function (stdout)
+            (options[stdout:sub(1,-2)] or do_nothing)()
+        end)
+end
 
 local function show_monitor_commands(monitors)
-  if monitors == 1 then
-    awful.util.spawn("timeout 3 mons -a")
-  elseif monitors == 2 then
+  if monitors == 2 then
     awful.spawn.easy_async_with_shell(
       "/home/jan/.config/awesome/window-control.sh",
       function (stdout, stderr, reason, exit_code)
@@ -233,6 +150,8 @@ local function show_monitor_commands(monitors)
         awful.util.spawn("mons " .. opt)
         awesome.restart()
       end)
+  else
+    awful.util.spawn("mons -o")
     -- monitor_selection_popup.visible = not monitor_selection_popup.visible
   end
 
@@ -248,46 +167,6 @@ local function get_connected_monitors()
     end
   )
 end
-
--- Create a wibox for each screen and add it
-local taglist_buttons = gears.table.join(
-  awful.button({}, 1, function(t) t:view_only() end),
-  awful.button({ modkey }, 1, function(t)
-    if client.focus then
-      client.focus:move_to_tag(t)
-    end
-  end),
-  awful.button({}, 3, awful.tag.viewtoggle),
-  awful.button({ modkey }, 3, function(t)
-    if client.focus then
-      client.focus:toggle_tag(t)
-    end
-  end),
-  awful.button({}, 4, function(t) awful.tag.viewnext(t.screen) end),
-  awful.button({}, 5, function(t) awful.tag.viewprev(t.screen) end)
-)
-
-local tasklist_buttons = gears.table.join(
-  awful.button({}, 1, function(c)
-    if c == client.focus then
-      c.minimized = true
-    else
-      c:emit_signal(
-        "request::activate",
-        "tasklist",
-        { raise = true }
-      )
-    end
-  end),
-  awful.button({}, 3, function()
-    awful.menu.client_list({ theme = { width = 250 } })
-  end),
-  awful.button({}, 4, function()
-    awful.client.focus.byidx(1)
-  end),
-  awful.button({}, 5, function()
-    awful.client.focus.byidx(-1)
-  end))
 
 local function set_wallpaper(s)
   -- Wallpaper
@@ -311,85 +190,18 @@ beautiful.systray_icon_spacing = 5
 awful.screen.connect_for_each_screen(function(s)
   -- Wallpaper
   set_wallpaper(s)
+  -- s.padding = { top = 0, bottom = 10, left = 0, right = 0 }
 
   -- Each screen has its own tag table.
-  awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
-
-  -- Create a promptbox for each screen
-  s.mypromptbox = awful.widget.prompt()
-  -- Create an imagebox widget which will contain an icon indicating which layout we're using.
-  -- We need one layoutbox per screen.
-  s.mylayoutbox = awful.widget.layoutbox(s)
-  s.mylayoutbox:buttons(gears.table.join(
-    awful.button({}, 1, function() awful.layout.inc(1) end),
-    awful.button({}, 3, function() awful.layout.inc(-1) end),
-    awful.button({}, 4, function() awful.layout.inc(1) end),
-    awful.button({}, 5, function() awful.layout.inc(-1) end)))
-  -- Create a taglist widget
-  s.mytaglist = awful.widget.taglist {
-    screen  = s,
-    filter  = awful.widget.taglist.filter.all,
-    buttons = taglist_buttons
-  }
-
-  -- Create a tasklist widget
-  s.mytasklist = awful.widget.tasklist {
-    screen  = s,
-    filter  = awful.widget.tasklist.filter.currenttags,
-    buttons = tasklist_buttons
-  }
-
-  -- Create the wibox
-  s.mywibox = awful.wibar({ position = "top", screen = s })
-
-  -- Add widgets to the wibox
-  s.mywibox:setup {
-    layout = wibox.layout.align.horizontal,
-    {     -- Left widgets
-      layout = wibox.layout.fixed.horizontal,
-      mylauncher,
-      s.mytaglist,
-      s.mypromptbox,
-    },
-
-    -- s.mytasklist, -- Middle widget
-    separator,
-    {     -- Right widgets
-      layout = wibox.layout.fixed.horizontal,
-      debug_prompt,
-      battery_widget {
-        listen = true,
-        widget_font = "HurmitNerdFontMono",
-        ac_prefix = {
-          { 100, "󰂄" },
-        },
-        battery_prefix = {
-          { 25, "󰁺" },
-          { 50, "󰁼" },
-          { 75, "󰂀" },
-          { 100, "󰁹" },
-        },
-        percent_colors = {
-          { 25, "#e45959" },
-          { 50, "#e49740" },
-          { 100, "#7feb5a" },
-        },
-        widget_text = "${AC_BAT}${color_on}${percent}${color_off} ",
-      },
-      mykeyboardlayout,
-      systray,
-      mytextclock,
-      s.mylayoutbox,
-    },
-  }
+  awful.tag({ "main", "switch", "fun", "email" }, s, awful.layout.layouts[1])
 end)
 -- }}}
 
 -- {{{ Mouse bindings
 root.buttons(gears.table.join(
-  awful.button({}, 3, function() mymainmenu:toggle() end),
-  awful.button({}, 4, awful.tag.viewnext),
-  awful.button({}, 5, awful.tag.viewprev)
+  awful.button({}, 3, function() mymainmenu:toggle() end)
+  -- awful.button({}, 4, awful.tag.viewnext),
+  -- awful.button({}, 5, awful.tag.viewprev)
 ))
 -- }}}
 
@@ -492,31 +304,15 @@ globalkeys = gears.table.join(
   end,
     { description = "run prompt", group = "launcher" }),
 
-  awful.key({ modkey }, "x",
-    function()
-      awful.prompt.run {
-        prompt       = "Run Lua code: ",
-        textbox      = awful.screen.focused().mypromptbox.widget,
-        exe_callback = awful.util.eval,
-        history_path = awful.util.get_cache_dir() .. "/history_eval"
-      }
-    end,
-    { description = "lua execute prompt", group = "awesome" }),
-  -- Menubar
-  -- awful.key({ modkey }, "p", function() menubar.show() end,
-    -- { description = "show the menubar", group = "launcher" }),
-
   awful.key({ modkey }, "p", function()
-    -- make_popup('Title', wibox.widget{}, wibox.widget{})
     get_connected_monitors()
-    -- awful.screen.focused().mypromptbox:run()
   end,
     { description = "switch between monitor setup", group = "awesome" }),
 
   -- Volume widget
-  awful.key({}, "XF86AudioRaiseVolume", function() awful.util.spawn("amixer -c0 sset Master 5%+") end),
-  awful.key({}, "XF86AudioLowerVolume", function() awful.util.spawn("amixer -c0 sset Master 5%-") end),
-  awful.key({}, "XF86AudioMute", function() awful.util.spawn("amixer -c0 sset Master 1+ toggle") end),
+  awful.key({}, "XF86AudioRaiseVolume", function() awful.spawn.with_shell("/home/jan/.config/awesome/volume/increment.sh") end),
+  awful.key({}, "XF86AudioLowerVolume", function() awful.spawn.with_shell("/home/jan/.config/awesome/volume/decrement.sh") end),
+  awful.key({}, "XF86AudioMute", function() awful.spawn.with_shell("/home/jan/.config/awesome/volume/mute.sh") end),
 
   -- Switch keyboard layout
   awful.key({ modkey }, "space", function()
@@ -533,7 +329,15 @@ globalkeys = gears.table.join(
   awful.key({}, "Print", function() awful.util.spawn("flameshot screen") end,
     { description = "Screenshot with selection", group = "awesome" }),
   awful.key({ "Shift" }, "Print", function() awful.util.spawn("flameshot gui") end,
-    { description = "Screenshot", group = "awesome" })
+    { description = "Screenshot", group = "awesome" }),
+  awful.key({ modkey, "Control" }, "p", function ()
+        local opts = {
+            normal = function() change_polybar("main") end,
+            time = function() change_polybar("time") end,
+            detailed = function() change_polybar("detailed") end,
+        }
+        choose_option(opts, "normal\ntime\ndetailed")
+    end)
 )
 
 clientkeys = gears.table.join(
@@ -666,6 +470,18 @@ awful.rules.rules = {
     }
   },
 
+  {
+    rule = { class = "Polybar" },
+    properties = {
+      floating = true,
+      border_width = 0,
+      focus = false,
+      on_top = true,
+      sticky = true,
+      skip_taskbar = true
+    }
+  },
+
   -- Floating clients.
   {
     rule_any = {
@@ -705,6 +521,11 @@ awful.rules.rules = {
     rule_any = { type = { "normal", "dialog" }
     },
     properties = { titlebars_enabled = false }
+  },
+
+  {
+    rule = { class = "thunderbird" },
+    properties = { tag = "email" }
   },
 
   -- Set Firefox to always map on the tag named "2" on screen 1.
@@ -776,3 +597,6 @@ end)
 client.connect_signal("focus", function(c) c.border_color = beautiful.border_focus end)
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
 -- }}}
+
+awful.spawn.with_shell("/home/jan/.config/polybar/launch.sh")
+-- awful.spawn.with_shell("feh --bg-scale /home/jan/.config/resources/banan.jpg")

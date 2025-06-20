@@ -21,3 +21,5 @@ inputbar {
   background-color: @bg0;
 }
 
+
+//@theme "/home/jan/.config/rofi/themes/simple-tokyonight.rasi"

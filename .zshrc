@@ -32,6 +32,11 @@ eval "$(pyenv init -)"
 # npm
 export PATH=$PATH:./node_modules/.bin
 
+# flutter
+export ANDROID_HOME=$HOME/android-sdk
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export JAVA_HOME=/usr/lib/jvm/java-23-openjdk
+
 # Keybinds
 bindkey '^ ' autosuggest-accept
 bindkey '^[[A' history-substring-search-up
@@ -48,3 +53,6 @@ bindkey '^J' history-substring-search-down
 # di4am0nd
 # multiverse-neon
 # pure
+[ -f /opt/miniconda3/etc/profile.d/conda.sh ] && source /opt/miniconda3/etc/profile.d/conda.sh
+
+[ -f "/home/jan/.ghcup/env" ] && . "/home/jan/.ghcup/env" # ghcup-env

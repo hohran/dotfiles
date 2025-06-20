@@ -24,7 +24,7 @@
   margin  : 0;
   padding : 0;
   spacing : 0;
-  border  : 4;
+  border  : 0;
 }
 
 element-icon, element-text, scrollbar {
@@ -36,12 +36,10 @@ window {
   width    : 600;
 
   background: rgba(14,65,91,0.3);
-  // background-image: url("shapes-min.png");
   background-color: @bg1;
   border: 3;
   border-color: @magenta;
 }
-
 
 icon-search, entry, element-icon, element-text {
   vertical-align: 0.5;
@@ -67,7 +65,7 @@ listview {
 }
 
 element {
-  padding : 4px 8px;
+  padding : 6px 8px;
   spacing : 8px;
 }
 
