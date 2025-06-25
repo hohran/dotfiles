@@ -1,5 +1,6 @@
 -- If LuaRocks is installed, make sure that packages installed through it are
 -- found (e.g. lgi). If LuaRocks is not installed, do nothing.
+
 pcall(require, "luarocks.loader")
 
 -- Standard awesome library
@@ -123,11 +124,29 @@ local function dict_to_string(lookup)
     return s
 end
 
+local function copy_to_clipboard(str)
+    awful.spawn.with_shell("echo -n '" .. str:gsub("'", "'\\''") .. "' | xsel --clipboard --input")
+    naughty.notify({
+        title = "Copied to clipboard",
+        text = str,
+        timeout = 2
+    })
+end
+
+local function clipboard_copy_options (option_string)
+    local func = "echo \"" .. option_string .. "\" | rofi -dmenu -config /home/jan/.config/rofi/config-window.rasi"
+    awful.spawn.easy_async_with_shell(
+        func,
+        function (stdout)
+            copy_to_clipboard(stdout:sub(1,-2))
+        end)
+end
+
 local function choose_option (options, option_string)
     if not option_string then
         option_string = dict_to_string(options)
     end
-    local func = "echo \"" .. option_string .. "\" | rofi -dmenu -config /home/jan/.config/rofi/config-window.rasi"
+    local func = "echo \"" .. option_string .. "\" | rofi -i -dmenu -config /home/jan/.config/rofi/config-window.rasi"
     awful.spawn.easy_async_with_shell(
         func,
         function (stdout)
@@ -139,7 +158,7 @@ local function show_monitor_commands(monitors)
   if monitors == 2 then
     awful.spawn.easy_async_with_shell(
       "/home/jan/.config/awesome/window-control.sh",
-      function (stdout, stderr, reason, exit_code)
+      function (stdout)
         local opt = "-s"
         if stdout == "Primary\n" then opt = "-o"
         elseif stdout == "Secondary\n" then opt = '-s'
@@ -169,15 +188,13 @@ local function get_connected_monitors()
 end
 
 local function set_wallpaper(s)
-  -- Wallpaper
-  if beautiful.wallpaper then
+  -- Wallpaper if beautiful.wallpaper then
     local wallpaper = beautiful.wallpaper
     -- If wallpaper is a function, call it with the screen
     if type(wallpaper) == "function" then
       wallpaper = wallpaper(s)
     end
     gears.wallpaper.maximized(wallpaper, s, true)
-  end
 end
 
 -- Re-set wallpaper when a screen's geometry changes (e.g. different resolution)
@@ -222,9 +239,15 @@ globalkeys = gears.table.join(
   --   { description = "go back", group = "tag" }),
 
   awful.key({ modkey, }, "Escape", function()
-      awful.util.spawn("systemctl suspend")
+      local opts = {
+            [" Lights off"] = function () awful.spawn.with_shell("xset dpms force off") end,
+            [" Lock screen"] = function () awful.spawn.with_shell("betterlockscreen -l blur") end,
+            [" Power off"] = function () awful.spawn.with_shell("shutdown now") end,
+            ["󰜉 Restart"] = function () awful.spawn.with_shell("reboot") end,
+        }
+      choose_option(opts, " Lights off\n Lock screen\n Power off\n󰜉 Restart")
     end,
-    { description = "lock screen", group = "awesome" }),
+    { description = "lock screen options", group = "awesome" }),
 
   awful.key({ modkey, }, "j",
     function()
@@ -337,6 +360,32 @@ globalkeys = gears.table.join(
             detailed = function() change_polybar("detailed") end,
         }
         choose_option(opts, "normal\ntime\ndetailed")
+    end),
+  awful.key({ modkey }, "c", function ()
+        local function make_fun(option_string)
+            if string.find(option_string, "\n") then
+                return function() clipboard_copy_options(option_string) end
+            else
+                return function() copy_to_clipboard(option_string) end
+            end
+        end
+
+        local opts = {
+            ["Mail"] = make_fun("hranickajan@seznam.cz\nxhrani03@vutbr.cz\nchaloupka@farnostzidenice.cz\nministranti@farnostzidenice.cz\njaraky@farnostzidenice.cz"),
+            ["Phone"] = make_fun("732418196"),
+            ["Address"] = make_fun("Kamenačky 49, Brno 63600"),
+            ["Other"] = function ()
+                local other = {
+                    ["Bank account"] = make_fun("205656038/0600"),
+                    ["ISIC"] = make_fun("S420300773744P"),
+                    ["ID"] = make_fun("208536286"),
+                    ["Birth number"] = make_fun("020807/4075"),
+                    ["Passport"] = make_fun("47324393"),
+                }
+                choose_option(other, "ID\nBirth number\nPassport\nBank account\nISIC")
+            end
+        }
+        choose_option(opts, "Mail\nPhone\nAddress\nOther")
     end)
 )
 
