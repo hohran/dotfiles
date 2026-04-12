@@ -19,16 +19,13 @@ local hotkeys_popup = require("awful.hotkeys_popup")
 -- when client with a matching name is opened:
 require("awful.hotkeys_popup.keys")
 
--- Own plugins
-local volume_widget = require('awesome-wm-widgets.volume-widget.volume')
-
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
 -- another config (This code will only ever execute for the fallback config)
 if awesome.startup_errors then
   naughty.notify({
     preset = naughty.config.presets.critical,
-    title = "Oops, there were errors during startup!",
+    title = "Startup errors!",
     text = awesome.startup_errors
   })
 end
@@ -43,12 +40,21 @@ do
 
     naughty.notify({
       preset = naughty.config.presets.critical,
-      title = "Oops, an error happened!",
+      title = "Error:",
       text = tostring(err)
     })
     in_error = false
   end)
 end
+
+awesome.connect_signal("request::display", function(n)
+  if n.urgency ~= "critical" then
+    return  -- ignore low-urgency
+  end
+
+  naughty.layout.box({ notification = n })
+end)
+
 -- }}}
 
 local themes_dir = ".config/awesome/themes/"
@@ -204,6 +210,8 @@ local systray = wibox.widget.systray()
 systray:set_base_size(14)
 beautiful.systray_icon_spacing = 5
 
+local warm_mode_set = false
+
 awful.screen.connect_for_each_screen(function(s)
   -- Wallpaper
   set_wallpaper(s)
@@ -289,8 +297,8 @@ globalkeys = gears.table.join(
     { description = "open a terminal", group = "launcher" }),
   awful.key({ modkey, "Control" }, "r", awesome.restart,
     { description = "reload awesome", group = "awesome" }),
-  awful.key({ modkey, "Shift" }, "q", awesome.quit,
-    { description = "quit awesome", group = "awesome" }),
+  -- awful.key({ modkey, "Shift" }, "q", awesome.quit,
+  --   { description = "quit awesome", group = "awesome" }),
   awful.key({ modkey, }, "l", function() awful.tag.incmwfact(0.05) end,
     { description = "increase master width factor", group = "layout" }),
   awful.key({ modkey, }, "h", function() awful.tag.incmwfact(-0.05) end,
@@ -328,14 +336,48 @@ globalkeys = gears.table.join(
     { description = "run prompt", group = "launcher" }),
 
   awful.key({ modkey }, "p", function()
-    get_connected_monitors()
+    local opts = {
+        ["Primary"] = function ()
+            awful.spawn.with_shell("mons -o")
+        end,
+        ["Secondary"] = function ()
+            awful.spawn.with_shell("mons -s")
+        end,
+        ["Duplicate"] = function ()
+            awful.spawn.with_shell("mons -d")
+        end,
+        ["Extend"] = function ()
+            awful.spawn.with_shell("mons -e left")
+        end
+    }
+    choose_option(opts, "Primary\nSecondary\nDuplicate\nExtend")
   end,
     { description = "switch between monitor setup", group = "awesome" }),
 
   -- Volume widget
-  awful.key({}, "XF86AudioRaiseVolume", function() awful.spawn.with_shell("/home/jan/.config/awesome/volume/increment.sh") end),
+  awful.key({}, "XF86AudioRaiseVolume", function() 
+        awful.spawn.with_shell("/home/jan/.config/awesome/volume/increment.sh") 
+    end),
   awful.key({}, "XF86AudioLowerVolume", function() awful.spawn.with_shell("/home/jan/.config/awesome/volume/decrement.sh") end),
   awful.key({}, "XF86AudioMute", function() awful.spawn.with_shell("/home/jan/.config/awesome/volume/mute.sh") end),
+  awful.key({ modkey, "Control" }, "w", function()
+    warm_mode_set = not warm_mode_set
+    if warm_mode_set then
+        awful.spawn.with_shell("sct 1500")
+    else
+        awful.spawn.with_shell("sct")
+    end
+  end),
+
+  -- Brightness control
+    awful.key({}, "XF86MonBrightnessUp", function()
+        awful.spawn.with_shell("brightnessctl set +10%")
+    end,
+        { description = "increase brightness", group = "hotkeys" }),
+    awful.key({}, "XF86MonBrightnessDown", function()
+        awful.spawn.with_shell("brightnessctl set 10%-")
+    end,
+        { description = "decrease brightness", group = "hotkeys" }),
 
   -- Switch keyboard layout
   awful.key({ modkey }, "space", function()
@@ -371,7 +413,7 @@ globalkeys = gears.table.join(
         end
 
         local opts = {
-            ["Mail"] = make_fun("hranickajan@seznam.cz\nxhrani03@vutbr.cz\nchaloupka@farnostzidenice.cz\nministranti@farnostzidenice.cz\njaraky@farnostzidenice.cz"),
+            ["Mail"] = make_fun("hranickajan@seznam.cz\nhohrando@gmail.com\nxhrani03@vutbr.cz\nchaloupka@farnostzidenice.cz\nministranti@farnostzidenice.cz\njaraky@farnostzidenice.cz\nministrantibrnenskydekanat@gmail.com"),
             ["Phone"] = make_fun("732418196"),
             ["Address"] = make_fun("Kamenačky 49, Brno 63600"),
             ["Other"] = function ()
@@ -396,6 +438,8 @@ clientkeys = gears.table.join(
       c:raise()
     end,
     { description = "toggle fullscreen", group = "client" }),
+  awful.key({ modkey }, "q", function(c) c:kill() end,
+    { description = "close", group = "client" }),
   awful.key({ modkey, "Shift" }, "c", function(c) c:kill() end,
     { description = "close", group = "client" }),
   awful.key({ modkey, "Control" }, "space", awful.client.floating.toggle,
