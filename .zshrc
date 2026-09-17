@@ -56,3 +56,11 @@ bindkey '^J' history-substring-search-down
 [ -f /opt/miniconda3/etc/profile.d/conda.sh ] && source /opt/miniconda3/etc/profile.d/conda.sh
 
 [ -f "/home/jan/.ghcup/env" ] && . "/home/jan/.ghcup/env" # ghcup-env
+fpath+=~/.zfunc; autoload -Uz compinit; compinit
+
+zstyle ':completion:*' menu select
+
+# TeX
+export MANPATH=:$MANPATH:"/usr/local/texlive/2025/texmf-dist/doc/man"
+export INFOPATH=:$INFOPATH:"/usr/local/texlive/2025/texmf-dist/doc/info"
+export PATH=$PATH:"/usr/local/texlive/2025/bin/x86_64-linux"
